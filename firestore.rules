@@ -1,0 +1,148 @@
+// firestore.rules — Robust & Permissive Role-Based Rules for MindCare@DIU
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn()     { return request.auth != null; }
+    function uid()            { return request.auth.uid; }
+
+    function userDoc()        { return get(/databases/$(database)/documents/users/$(uid())); }
+    function userRole()       { return userDoc().data.role; }
+
+    function isVolunteer()    { return isSignedIn() && userRole() == 'volunteer'; }
+    function isPsychologist() { return isSignedIn() && userRole() == 'psychologist'; }
+    function isAdmin()        { return isSignedIn() && userRole() == 'admin'; }
+    function isStaff()        { return isVolunteer() || isPsychologist() || isAdmin(); }
+    function isOwner(id)      { return isSignedIn() && uid() == id; }
+
+    // ── users ──────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isOwner(userId) 
+                  || isStaff() 
+                  || (isSignedIn() && resource.data.role in ['psychologist', 'volunteer']);
+      allow create: if isSignedIn() 
+                    && request.resource.data.uid == userId 
+                    && request.resource.data.role == 'student';
+      allow update: if isAdmin() || (isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isVerified'])
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['studentIdVerified'])
+          || request.resource.data.studentIdVerified == false
+        )
+      );
+      allow delete: if isAdmin() || isOwner(userId);
+      
+      // ── notifications (subcollection) ────────────────────────────────
+      match /notifications/{notificationId} {
+        allow read, delete: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow create: if isSignedIn(); 
+      }
+    }
+
+    // ── screenings ─────────────────────────────────────────────────────
+    match /screenings/{id} {
+      allow read: if isSignedIn() && (resource.data.studentUid == uid() || isStaff());
+      allow create: if isSignedIn() && request.resource.data.studentUid == uid();
+      allow update, delete: if isAdmin();
+    }
+
+    // ── chatSessions ───────────────────────────────────────────────────
+    match /chatSessions/{id} {
+      function isParticipant(data) {
+        return data.studentUid == uid()
+            || data.volunteerUid == uid()
+            || data.psychologistUid == uid();
+      }
+      allow read: if isParticipant(resource.data) || isStaff();
+      allow create: if isSignedIn() && request.resource.data.studentUid == uid();
+      allow update: if isParticipant(resource.data) || isStaff();
+      allow delete: if isAdmin();
+
+      // ── messages (subcollection) ─────────────────────────────────────
+      match /messages/{msgId} {
+        function getParentData() {
+          return get(/databases/$(database)/documents/chatSessions/$(id)).data;
+        }
+        function isParticipantOfParent() {
+          let pData = getParentData();
+          return pData.studentUid == uid()
+              || pData.volunteerUid == uid()
+              || pData.psychologistUid == uid();
+        }
+        allow read: if isParticipantOfParent() || isStaff();
+        allow create: if isParticipantOfParent() && (request.resource.data.senderUid == uid() || request.resource.data.senderUid == 'system');
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // ── bookings ───────────────────────────────────────────────────────
+    match /bookings/{id} {
+      allow read: if isSignedIn() && (
+        resource.data.studentUid == uid()
+        || resource.data.psychologistUid == uid()
+        || isStaff()
+      );
+      allow create: if isSignedIn() && request.resource.data.studentUid == uid();
+      allow update: if isPsychologist() || isAdmin() || isOwner(resource.data.studentUid);
+      allow delete: if isAdmin();
+    }
+
+    // ── privateNotes ───────────────────────────────────────────────────
+    match /privateNotes/{id} {
+      allow read, write: if isPsychologist() || isAdmin();
+    }
+
+    // ── psychologistSlots ─────────────────────────────────────────────
+    match /psychologistSlots/{id} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || (isPsychologist() && request.resource.data.psychologistUid == uid());
+      allow delete: if isAdmin() || (isPsychologist() && resource.data.psychologistUid == uid());
+      allow update: if isAdmin() || (isPsychologist() && resource.data.psychologistUid == uid()) 
+                    || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isBooked', 'bookedByUid', 'bookingId', 'updatedAt']));
+    }
+
+    // ── moodEntries ────────────────────────────────────────────────────
+    match /moodEntries/{id} {
+      allow read: if isSignedIn() && (resource.data.studentUid == uid() || isStaff());
+      allow create: if isSignedIn() && request.resource.data.studentUid == uid();
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.studentUid == uid());
+    }
+
+    // ── incidents ─────────────────────────────────────────────────────
+    match /incidents/{id} {
+      allow read, update: if isStaff();
+      allow create: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // ── auditLogs ─────────────────────────────────────────────────────
+    match /auditLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // ── role_alerts ───────────────────────────────────────────────────
+    match /role_alerts/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // ── payments ──────────────────────────────────────────────────────
+    match /payments/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+
+
+    // ── content ───────────────────────────────────────────────────────
+    match /content/{id} {
+      allow read: if isSignedIn();
+      allow write: if isPsychologist() || isAdmin();
+    }
+  }
+}

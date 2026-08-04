@@ -1,0 +1,78 @@
+name: mindcare_diu
+description: MindCare@DIU — Mental Health Support Platform for Daffodil International University
+version: 1.0.0+1
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # ── Firebase ────────────────────────────────────────────────────────────
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.5.0
+  firebase_messaging: ^15.1.0
+
+  # ── State management ────────────────────────────────────────────────────
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # ── Navigation ──────────────────────────────────────────────────────────
+  go_router: ^14.6.2
+
+  # ── UI & Fonts ──────────────────────────────────────────────────────────
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  fl_chart: ^0.69.0
+  cached_network_image: ^3.4.1
+
+  # ── Local notifications (foreground FCM + Android channels) ─────────────
+  flutter_local_notifications: ^18.0.0
+
+  # ── Image handling ───────────────────────────────────────────────────────
+  image_picker: ^1.1.2
+  flutter_image_compress: ^2.3.0
+  path: ^1.9.0
+
+  # ── Utilities ───────────────────────────────────────────────────────────
+  url_launcher: ^6.3.1          # Crisis screen phone calls — REQUIRED
+  intl: ^0.20.2
+  shared_preferences: ^2.3.2
+  uuid: ^4.5.1
+  equatable: ^2.0.5
+  connectivity_plus: ^6.1.0     # Offline detection banner
+  timeago: ^3.7.1
+  shimmer: ^3.0.0
+  table_calendar: ^3.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.6.1
+  custom_lint: ^0.7.0
+  riverpod_lint: ^2.6.1
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/MindCare_DIU_Icon.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  generate: true  # Required for flutter gen-l10n to work
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  fonts: []  # All fonts loaded dynamically via google_fonts package

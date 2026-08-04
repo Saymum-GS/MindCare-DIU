@@ -1,0 +1,41 @@
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "mindcarediu",
+          "appId": "1:159212793448:android:241b534cae13e4fabad5dd",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "mindcarediu",
+          "configurations": {
+            "android": "1:159212793448:android:241b534cae13e4fabad5dd",
+            "ios": "1:159212793448:ios:da97cf36cf3c78f4bad5dd",
+            "web": "1:159212793448:web:6b062292f69f24d0bad5dd"
+          }
+        }
+      }
+    }
+  }
+}
